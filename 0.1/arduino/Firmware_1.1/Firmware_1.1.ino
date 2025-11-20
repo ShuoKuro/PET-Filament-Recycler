@@ -3,6 +3,8 @@
 #include <LiquidCrystal_I2C.h>  // 用於控制 I2C LCD 顯示器
 #include <thermistor.h>         // 用於熱敏電阻溫度轉換 (從 https://electronoobs.com/eng_arduino_thermistor.php 下載)
 #include <AccelStepper.h>       // 用於步進馬達控制
+#include <SoftwareSerial.h>     // 用於藍牙串行通訊
+#include <EEPROM.h>             // 用於保存設定到 EEPROM
 
 // 定義 LCD 物件：地址 0x3F，尺寸 16x2
 LiquidCrystal_I2C lcd(0x3f, 16, 2);
@@ -12,6 +14,9 @@ thermistor therm1(A0, 0);
 
 // 定義步進馬達物件：驅動器類型 1，STEP 引腳 3，DIR 引腳 4
 AccelStepper stepper1(1, 3, 4);
+
+// 定義藍牙串口（RX=8, TX=9）
+SoftwareSerial bluetooth(8, 9);
 
 // 硬體引腳定義（集中管理，便於修改）
 const int PWM_pin = 5;       // PWM 輸出給加熱元件
@@ -35,7 +40,7 @@ const int kd = 80;              // PID 微分增益
 const int max_PWM = 255;        // PWM 最大值
 
 // 步進馬達相關變數
-const int max_speed = 1000;     // 馬達最大速度（步/秒）
+int max_speed = 1000;           // 馬達最大速度（步/秒），移除 const 以允許藍牙修改
 int rotating_speed = 0;         // 當前馬達速度
 bool activate_stepper = false;  // 馬達啟用旗標
 
@@ -77,6 +82,11 @@ void setup() {
   lcd.init();
   lcd.backlight();
   
+  // 初始化藍牙並載入保存的設定
+  bluetooth.begin(9600);
+  EEPROM.get(0, set_temperature);  // 載入保存的溫度 (地址 0)
+  EEPROM.get(4, max_speed);        // 載入保存的速度 (地址 4, int 佔 4 bytes)
+  
   // 記錄初始時間
   lastUpdateTime = millis();
 }
@@ -84,6 +94,7 @@ void setup() {
 // 主迴圈：持續檢查按鈕、更新馬達、並定期更新 PID 和 LCD
 void loop() {
   handleButton();      // 處理按鈕輸入和去彈跳
+  handleBluetooth();   // 處理藍牙輸入和命令
   updateStepper();     // 更新步進馬達狀態和速度
   
   // 非阻塞更新：每 250ms 執行一次 PID 和顯示
@@ -100,6 +111,49 @@ void handleButton() {
   if (!digitalRead(but1) && (millis() - lastDebounceTime) > debounceDelay) {
     activate_stepper = !activate_stepper;  // 切換馬達啟用狀態
     lastDebounceTime = millis();           // 更新去彈跳時間
+  }
+}
+
+// 函式：處理藍牙輸入和命令解析
+void handleBluetooth() {
+  if (bluetooth.available() > 0) {
+    String command = bluetooth.readStringUntil('\n');
+    command.trim();
+
+    if (command.startsWith("SET_TEMP:")) {
+      String valueStr = command.substring(9);
+      float newTemp = valueStr.toFloat();
+      if (newTemp >= 0 && newTemp <= 300) {
+        set_temperature = newTemp;
+        bluetooth.println("OK: Temp set to " + String(newTemp));
+      } else {
+        bluetooth.println("ERROR: Invalid temp");
+      }
+    } else if (command.startsWith("SET_SPEED:")) {
+      String valueStr = command.substring(10);
+      int newSpeed = valueStr.toInt();
+      if (newSpeed >= 0 && newSpeed <= 1000) {
+        max_speed = newSpeed;  // 更新 max_speed (或直接 rotating_speed 如果不依賴電位器)
+        bluetooth.println("OK: Speed set to " + String(newSpeed));
+      } else {
+        bluetooth.println("ERROR: Invalid speed");
+      }
+    } else if (command == "START") {
+      activate_stepper = true;
+      bluetooth.println("OK: Motor started");
+    } else if (command == "STOP") {
+      activate_stepper = false;
+      bluetooth.println("OK: Motor stopped");
+    } else if (command == "GET_STATUS") {
+      String status = "TEMP:" + String(set_temperature) + ",SPEED:" + String(rotating_speed) + ",STATUS:" + (activate_stepper ? "ON" : "OFF") + ",CONNECTED:yes";
+      bluetooth.println(status);  // 發送機器狀態
+    } else if (command == "SAVE") {
+      EEPROM.put(0, set_temperature);  // 保存溫度
+      EEPROM.put(4, max_speed);        // 保存速度
+      bluetooth.println("OK: Settings saved");
+    } else {
+      bluetooth.println("ERROR: Unknown command");
+    }
   }
 }
 
