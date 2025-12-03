@@ -1,13 +1,13 @@
-// 測試 LCD 顯示
 #include <Wire.h>
-#include <LiquidCrystal_I2C.h>
+#include <hd44780.h>
+#include <hd44780ioClass/hd44780_I2Cexp.h>  // I2C expander i/o class header
 
-LiquidCrystal_I2C lcd(0x3f, 16, 2);  // 地址 0x3F，尺寸 16x2
+hd44780_I2Cexp lcd;  // 自動偵測地址和pin mapping
 
 void setup() {
-  lcd.init();         // 初始化 LCD
-  lcd.backlight();    // 開啟背光
-  Serial.begin(9600); // 啟用序列輸出用於除錯
+  lcd.begin(16, 2);    // 初始化 LCD (16x2)
+  lcd.backlight();     // 開啟背光
+  Serial.begin(9600);  // 啟用序列輸出用於除錯
   Serial.println("LCD Test Started");
 }
 
