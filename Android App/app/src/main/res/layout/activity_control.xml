@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FAFAFA">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="240dp"
+            android:orientation="vertical"
+            android:background="#FFFFFF"
+            android:elevation="4dp"
+            android:padding="16dp"
+            android:layout_marginBottom="20dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Connected deivces:"
+                    android:textSize="24sp"
+                    android:textColor="#666666"
+                    android:layout_marginBottom="8dp"
+                    android:layout_weight="1" />
+
+                <Button
+                    android:id="@+id/button_refresh"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="right"
+                    android:text="Refresh"
+                    android:textSize="14sp"
+                    android:backgroundTint="#8338EC"
+                    android:textColor="#FFFFFF" />
+            </LinearLayout>
+
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <Spinner
+                    android:id="@+id/spinner_bluetooth_devices"
+                    android:layout_width="wrap_content"
+                    android:layout_height="150dp"
+                    android:layout_gravity="top"
+                    android:layout_marginBottom="8dp"
+                    android:layout_weight="1" />
+                <TextView
+                    android:id="@+id/textview_connection_status"
+                    android:layout_width="100dp"
+                    android:layout_height="wrap_content"
+                    android:text="Not Connected"
+                    android:textColor="#FF0000"
+                    android:textStyle="bold"
+                    android:gravity="center"/>
+
+            </LinearLayout>/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="24dp">
+
+            <Button
+                android:id="@+id/button_disconnect"
+                android:layout_width="140dp"
+                android:layout_height="56dp"
+                android:text="Disconnect"
+                android:textSize="16sp"
+                android:backgroundTint="#FF6B6B"
+                android:textColor="#FFFFFF"
+                android:layout_marginEnd="20dp" />
+
+            <Button
+                android:id="@+id/button_connect"
+                android:layout_width="140dp"
+                android:layout_height="56dp"
+                android:text="Connect"
+                android:textSize="16sp"
+                android:backgroundTint="#4ECDC4"
+                android:textColor="#FFFFFF" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="#FFFFFF"
+            android:elevation="4dp"
+            android:padding="20dp"
+            android:layout_marginBottom="20dp">
+
+            <TextView
+                android:id="@+id/textview_machine_status"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="Machine Status:"
+                android:textSize="16sp"
+                android:textColor="#333333"
+                android:gravity="center"
+                android:layout_marginBottom="20dp" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_weight="1">
+
+                <EditText
+                    android:id="@+id/edittext_temperature"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:hint="Temperature (°C)"
+                    android:inputType="numberDecimal"
+                    android:backgroundTint="#DDDDDD"
+                    android:padding="12dp"
+                    android:layout_marginBottom="16dp" />
+
+                <EditText
+                    android:id="@+id/edittext_speed"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:hint="Speed (mm/s)"
+                    android:inputType="numberDecimal"
+                    android:backgroundTint="#DDDDDD"
+                    android:padding="12dp" />
+            </LinearLayout>
+
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="24dp">
+
+            <Button
+                android:id="@+id/button_start"
+                android:layout_width="140dp"
+                android:layout_height="64dp"
+                android:text="Start"
+                android:textSize="18sp"
+                android:backgroundTint="#2ECC71"
+                android:textColor="#FFFFFF"
+                android:layout_marginEnd="24dp" />
+
+            <Button
+                android:id="@+id/button_stop"
+                android:layout_width="140dp"
+                android:layout_height="64dp"
+                android:text="Stop"
+                android:textSize="18sp"
+                android:backgroundTint="#E74C3C"
+                android:textColor="#FFFFFF" />
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/button_save"
+            android:layout_width="200dp"
+            android:layout_height="56dp"
+            android:text="Save Settings"
+            android:textSize="16sp"
+            android:backgroundTint="#8338EC"
+            android:textColor="#FFFFFF"
+            android:layout_gravity="center_horizontal" />
+
+    </LinearLayout>
+</ScrollView>
