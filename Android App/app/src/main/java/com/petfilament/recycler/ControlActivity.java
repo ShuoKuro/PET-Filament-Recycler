@@ -1,14 +1,20 @@
 package com.petfilament.recycler;
 
-import android.content.Intent;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import java.util.ArrayList;
 
 public class ControlActivity extends AppCompatActivity implements BluetoothManager.BluetoothCallback {
@@ -20,6 +26,9 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
     private Button buttonStart, buttonStop, buttonSave;
     private EditText editTextTemperature, editTextSpeed;
     private ArrayAdapter<String> deviceAdapter;
+
+    // 權限請求代碼
+    private static final int REQUEST_BLUETOOTH_PERMISSIONS = 100;
 
     // 機器狀態變數
     private String machineStatus = "IDLE";
@@ -45,9 +54,145 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
         // 設置按鈕點擊監聽器
         setupButtonListeners();
 
-        // 開始掃描設備
-        bluetoothManager.registerReceiver();
-        bluetoothManager.startDiscovery();
+        // 檢查並請求必要權限
+        checkAndRequestPermissions();
+    }
+
+    private void checkAndRequestPermissions() {
+        // 檢查當前已經擁有的權限
+        boolean hasAllPermissions = true;
+        ArrayList<String> permissionsNeeded = new ArrayList<>();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Android 12+ 需要 BLUETOOTH_SCAN 和 BLUETOOTH_CONNECT
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
+                    != PackageManager.PERMISSION_GRANTED) {
+                hasAllPermissions = false;
+                permissionsNeeded.add(Manifest.permission.BLUETOOTH_SCAN);
+            }
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
+                    != PackageManager.PERMISSION_GRANTED) {
+                hasAllPermissions = false;
+                permissionsNeeded.add(Manifest.permission.BLUETOOTH_CONNECT);
+            }
+        }
+
+        // 所有 Android 版本都需要位置權限來掃描藍牙設備
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            hasAllPermissions = false;
+            permissionsNeeded.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        }
+
+        if (!hasAllPermissions && !permissionsNeeded.isEmpty()) {
+            // 請求缺失的權限
+            ActivityCompat.requestPermissions(
+                    this,
+                    permissionsNeeded.toArray(new String[0]),
+                    REQUEST_BLUETOOTH_PERMISSIONS
+            );
+        } else {
+            // 已有所有權限，開始藍牙掃描
+            startBluetoothDiscovery();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == REQUEST_BLUETOOTH_PERMISSIONS) {
+            boolean allGranted = true;
+            for (int result : grantResults) {
+                if (result != PackageManager.PERMISSION_GRANTED) {
+                    allGranted = false;
+                    break;
+                }
+            }
+
+            if (allGranted) {
+                // 所有權限已授予
+                Toast.makeText(this, "權限已授予，開始掃描藍牙設備", Toast.LENGTH_SHORT).show();
+                startBluetoothDiscovery();
+            } else {
+                // 部分或全部權限被拒絕
+                Toast.makeText(this, "需要權限才能掃描藍牙設備", Toast.LENGTH_LONG).show();
+
+                // 檢查是否應該顯示解釋
+                for (int i = 0; i < permissions.length; i++) {
+                    if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
+                        if (ActivityCompat.shouldShowRequestPermissionRationale(this, permissions[i])) {
+                            // 用戶拒絕了權限，但沒有選擇"不再詢問"
+                            showPermissionExplanationDialog();
+                            break;
+                        } else {
+                            // 用戶選擇了"不再詢問"或永久拒絕
+                            showGoToSettingsDialog();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void showPermissionExplanationDialog() {
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("需要權限")
+                .setMessage("應用需要以下權限來掃描藍牙設備：\n\n" +
+                        "1. 位置權限 - 用於發現附近的藍牙設備\n" +
+                        "2. 藍牙權限 - 用於連接和控制藍牙設備\n\n" +
+                        "這是 Android 系統的安全要求，應用不會收集您的位置信息。")
+                .setPositiveButton("授予權限", (dialog, which) -> checkAndRequestPermissions())
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void showGoToSettingsDialog() {
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("需要權限")
+                .setMessage("您已永久拒絕了必要的權限。\n\n" +
+                        "請到手機的「設置」→「應用」→「PET-Filament-Recycler」→「權限」中手動授予權限。")
+                .setPositiveButton("打開設置", (dialog, which) -> {
+                    // 打開應用設置頁面
+                    android.content.Intent intent = new android.content.Intent(
+                            android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                    );
+                    intent.setData(android.net.Uri.parse("package:" + getPackageName()));
+                    startActivity(intent);
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void startBluetoothDiscovery() {
+        runOnUiThread(() -> {
+            if (hasBluetoothPermissions()) {
+                bluetoothManager.registerReceiver();
+                bluetoothManager.startDiscovery();
+                Toast.makeText(this, "正在掃描藍牙設備...", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "沒有藍牙掃描權限", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private boolean hasBluetoothPermissions() {
+        // 檢查所有必要的權限
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Android 12+
+            boolean hasScan = ContextCompat.checkSelfPermission(this,
+                    Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED;
+            boolean hasConnect = ContextCompat.checkSelfPermission(this,
+                    Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED;
+            boolean hasLocation = ContextCompat.checkSelfPermission(this,
+                    Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+            return hasScan && hasConnect && hasLocation;
+        } else {
+            // Android 6.0-11
+            return ContextCompat.checkSelfPermission(this,
+                    Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+        }
     }
 
     private void initializeViews() {
@@ -70,6 +215,19 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
     }
 
     private void setupButtonListeners() {
+        // 刷新按鈕
+        buttonRefresh.setOnClickListener(v -> {
+            if (hasBluetoothPermissions()) {
+                deviceAdapter.clear();
+                deviceAdapter.notifyDataSetChanged();
+                bluetoothManager.startDiscovery();
+                Toast.makeText(this, "重新掃描設備...", Toast.LENGTH_SHORT).show();
+            } else {
+                // 沒有權限，請求權限
+                checkAndRequestPermissions();
+            }
+        });
+
         // 連接按鈕
         buttonConnect.setOnClickListener(v -> {
             if (spinnerBluetoothDevices.getSelectedItem() != null) {
@@ -77,7 +235,12 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
                 String[] parts = selectedItem.split(" - ");
                 if (parts.length > 1) {
                     String macAddress = parts[1].trim();
-                    bluetoothManager.connect(macAddress);
+                    if (hasBluetoothPermissions()) {
+                        bluetoothManager.connect(macAddress);
+                    } else {
+                        Toast.makeText(this, "需要藍牙連接權限", Toast.LENGTH_SHORT).show();
+                        checkAndRequestPermissions();
+                    }
                 } else {
                     showToast("請選擇有效的設備");
                 }
@@ -95,14 +258,7 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
             setControlButtonsEnabled(false);
         });
 
-        // 刷新設備列表
-        buttonRefresh.setOnClickListener(v -> {
-            deviceAdapter.clear();
-            deviceAdapter.notifyDataSetChanged();
-            bluetoothManager.startDiscovery();
-        });
-
-        // 開始按鈕 - 根據 Arduino 協議發送 "START"
+        // 開始按鈕
         buttonStart.setOnClickListener(v -> {
             if (bluetoothManager != null) {
                 bluetoothManager.sendData("START");
@@ -114,7 +270,7 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
             }
         });
 
-        // 停止按鈕 - 根據 Arduino 協議發送 "STOP"
+        // 停止按鈕
         buttonStop.setOnClickListener(v -> {
             if (bluetoothManager != null) {
                 bluetoothManager.sendData("STOP");
@@ -126,7 +282,7 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
             }
         });
 
-        // 保存設置按鈕 - 根據 Arduino 協議發送 SET_TEMP 和 SET_SPEED
+        // 保存設置按鈕
         buttonSave.setOnClickListener(v -> {
             String tempStr = editTextTemperature.getText().toString().trim();
             String speedStr = editTextSpeed.getText().toString().trim();
@@ -137,7 +293,14 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
                 return;
             }
 
-            float temperature = Float.parseFloat(tempStr);
+            float temperature;
+            try {
+                temperature = Float.parseFloat(tempStr);
+            } catch (NumberFormatException e) {
+                showToast("請輸入有效的溫度值");
+                return;
+            }
+
             if (temperature < 220 || temperature > 260) {
                 showToast("溫度範圍應為 220-260°C");
                 return;
@@ -149,24 +312,23 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
                 return;
             }
 
-            int speed = Integer.parseInt(speedStr);
+            int speed;
+            try {
+                speed = Integer.parseInt(speedStr);
+            } catch (NumberFormatException e) {
+                showToast("請輸入有效的速度值");
+                return;
+            }
+
             if (speed < 0 || speed > 1000) {
                 showToast("速度範圍應為 0-1000 mm/s");
                 return;
             }
 
-            // 發送設置指令 - 根據 Arduino 協議格式
             if (bluetoothManager != null) {
-                // 發送溫度設置命令
                 bluetoothManager.sendData("SET_TEMP:" + (int)temperature);
-
-                // 發送速度設置命令
                 bluetoothManager.sendData("SET_SPEED:" + speed);
-
                 showToast("參數設置已發送");
-
-                // 發送保存到 EEPROM 命令（可選）
-                bluetoothManager.sendData("SAVE");
             } else {
                 showToast("未連接到設備");
             }
@@ -176,14 +338,15 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
     @Override
     protected void onStart() {
         super.onStart();
-        bluetoothManager.registerReceiver();
+        if (hasBluetoothPermissions()) {
+            bluetoothManager.registerReceiver();
 
-        // 請求機器狀態
-        if (bluetoothManager != null) {
-            // 延遲發送狀態請求，確保連接穩定
-            new android.os.Handler().postDelayed(() -> {
-                bluetoothManager.sendData("GET_STATUS");
-            }, 1000);
+            // 如果有連接，請求機器狀態
+            if (bluetoothManager != null) {
+                new android.os.Handler().postDelayed(() -> {
+                    bluetoothManager.sendData("GET_STATUS");
+                }, 1000);
+            }
         }
     }
 
@@ -204,9 +367,16 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
     @Override
     public void onDeviceFound(ArrayList<String> devices) {
         runOnUiThread(() -> {
-            deviceAdapter.clear();
-            deviceAdapter.addAll(devices);
-            deviceAdapter.notifyDataSetChanged();
+            if (devices != null && !devices.isEmpty()) {
+                deviceAdapter.clear();
+                deviceAdapter.addAll(devices);
+                deviceAdapter.notifyDataSetChanged();
+                showToast("找到 " + devices.size() + " 個設備");
+            } else {
+                deviceAdapter.clear();
+                deviceAdapter.notifyDataSetChanged();
+                showToast("未找到藍牙設備");
+            }
         });
     }
 
@@ -232,7 +402,7 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
         runOnUiThread(() -> {
             textViewConnectionStatus.setText("Not Connected");
             textViewConnectionStatus.setTextColor(getResources().getColor(android.R.color.holo_red_dark));
-            showToast(error);
+            showToast("連接失敗: " + error);
 
             // 禁用控制按鈕
             setControlButtonsEnabled(false);
@@ -242,17 +412,19 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
     @Override
     public void onDataReceived(String data) {
         runOnUiThread(() -> {
-            // 處理接收到的數據 - 根據 Arduino 協議
+            if (data == null || data.isEmpty()) return;
+
             if (data.contains("OK:")) {
                 // 成功響應
-                showToast(data);
+                showToast(data.substring(3).trim());
             } else if (data.contains("ERROR:")) {
                 // 錯誤響應
-                showToast("錯誤: " + data.replace("ERROR:", ""));
+                showToast("錯誤: " + data.substring(6).trim());
             } else if (data.contains("TEMP:") && data.contains("SPEED:") && data.contains("STATUS:")) {
-                // 解析狀態信息
+                // 完整的狀態信息
                 parseStatusData(data);
             } else if (data.contains("TEMP:")) {
+                // 溫度信息
                 String temp = data.replace("TEMP:", "").trim();
                 try {
                     currentTemperature = Float.parseFloat(temp);
@@ -261,6 +433,7 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
                     e.printStackTrace();
                 }
             } else if (data.contains("SPEED:")) {
+                // 速度信息
                 String speed = data.replace("SPEED:", "").trim();
                 try {
                     currentSpeed = Integer.parseInt(speed);
@@ -269,19 +442,19 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
                     e.printStackTrace();
                 }
             } else if (data.contains("STATUS:")) {
+                // 狀態信息
                 String status = data.replace("STATUS:", "").trim();
                 machineStatus = status;
                 updateMachineStatusUI();
             } else {
-                // 其他數據，直接顯示
-                showToast("收到: " + data);
+                // 其他數據，記錄日誌
+                Log.d("BluetoothData", "收到數據: " + data);
             }
         });
     }
 
     private void parseStatusData(String data) {
         try {
-            // 示例格式: "TEMP:200,SPEED:500,STATUS:ON,CONNECTED:yes"
             String[] parts = data.split(",");
             for (String part : parts) {
                 if (part.startsWith("TEMP:")) {
@@ -298,6 +471,7 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
                     updateMachineStatusUI();
                 }
             }
+            showToast("狀態更新完成");
         } catch (Exception e) {
             e.printStackTrace();
             showToast("解析狀態數據失敗");
@@ -316,7 +490,7 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
             textViewMachineStatus.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
         } else if (machineStatus.equalsIgnoreCase("IDLE") || machineStatus.equalsIgnoreCase("OFF")) {
             textViewMachineStatus.setTextColor(getResources().getColor(android.R.color.holo_orange_dark));
-        } else if (machineStatus.contains("ERROR")) {
+        } else if (machineStatus.contains("ERROR") || machineStatus.contains("STOPPED")) {
             textViewMachineStatus.setTextColor(getResources().getColor(android.R.color.holo_red_dark));
         }
     }
@@ -332,6 +506,7 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
         buttonStart.setAlpha(alpha);
         buttonStop.setAlpha(alpha);
         buttonSave.setAlpha(alpha);
+        buttonDisconnect.setAlpha(alpha);
     }
 
     private void showToast(String message) {
