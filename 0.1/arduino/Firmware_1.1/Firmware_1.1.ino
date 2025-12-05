@@ -3,7 +3,6 @@
 #include <hd44780.h> // 用於控制 HD44780 LCD 顯示器
 #include <hd44780ioClass/hd44780_I2Cexp.h> // 用於 I2C 擴展
 #include <AccelStepper.h> // 用於步進馬達控制
-#include <SoftwareSerial.h> // 用於藍牙串行通訊
 #include <EEPROM.h> // 用於保存設定到 EEPROM
 #include "pwm.h" // 用於 UNO R4 PWM 頻率控制 (內建於核心)
 
@@ -15,9 +14,6 @@ PwmOut heater_pwm(5);
 
 // 定義步進馬達物件：驅動器類型 1，STEP 引腳 3，DIR 引腳 4
 AccelStepper stepper1(1, 3, 4);
-
-// 定義藍牙串口（RX=8, TX=9）
-SoftwareSerial bluetooth(8, 9);
 
 // 硬體引腳定義（集中管理，便於修改）
 const int PWM_pin = 5; // PWM 輸出給加熱元件
@@ -91,7 +87,7 @@ void setup() {
   lcd.backlight();
 
   // 初始化藍牙並載入保存的設定
-  bluetooth.begin(9600);
+  Serial1.begin(9600);
   EEPROM.get(0, set_temperature); // 載入保存的溫度 (地址 0)
   EEPROM.get(4, max_speed); // 載入保存的速度 (地址 4, int 佔 4 bytes)
 
@@ -124,42 +120,42 @@ void handleButton() {
 
 // 函式：處理藍牙輸入和命令解析
 void handleBluetooth() {
-  if (bluetooth.available() > 0) {
-    String command = bluetooth.readStringUntil('\n');
+  if (Serial1.available() > 0) {
+    String command = Serial1.readStringUntil('\n');
     command.trim();
     if (command.startsWith("SET_TEMP:")) {
       String valueStr = command.substring(9);
       float newTemp = valueStr.toFloat();
       if (newTemp >= 0 && newTemp <= 300) {
         set_temperature = newTemp;
-        bluetooth.println("OK: Temp set to " + String(newTemp));
+        Serial1.println("OK: Temp set to " + String(newTemp));
       } else {
-        bluetooth.println("ERROR: Invalid temp");
+        Serial1.println("ERROR: Invalid temp");
       }
     } else if (command.startsWith("SET_SPEED:")) {
       String valueStr = command.substring(10);
       int newSpeed = valueStr.toInt();
       if (newSpeed >= 0 && newSpeed <= 1000) {
         max_speed = newSpeed; // 更新 max_speed (或直接 rotating_speed 如果不依賴電位器)
-        bluetooth.println("OK: Speed set to " + String(newSpeed));
+        Serial1.println("OK: Speed set to " + String(newSpeed));
       } else {
-        bluetooth.println("ERROR: Invalid speed");
+        Serial1.println("ERROR: Invalid speed");
       }
     } else if (command == "START") {
       activate_stepper = true;
-      bluetooth.println("OK: Motor started");
+      Serial1.println("OK: Motor started");
     } else if (command == "STOP") {
       activate_stepper = false;
-      bluetooth.println("OK: Motor stopped");
+      Serial1.println("OK: Motor stopped");
     } else if (command == "GET_STATUS") {
       String status = "TEMP:" + String(set_temperature) + ",SPEED:" + String(rotating_speed) + ",STATUS:" + (activate_stepper ? "ON" : "OFF") + ",CONNECTED:yes";
-      bluetooth.println(status); // 發送機器狀態
+      Serial1.println(status); // 發送機器狀態
     } else if (command == "SAVE") {
       EEPROM.put(0, set_temperature); // 保存溫度
       EEPROM.put(4, max_speed); // 保存速度
-      bluetooth.println("OK: Settings saved");
+      Serial1.println("OK: Settings saved");
     } else {
-      bluetooth.println("ERROR: Unknown command");
+      Serial1.println("ERROR: Unknown command");
     }
   }
 }
