@@ -5,6 +5,7 @@
 #include <AccelStepper.h> // 用於步進馬達控制
 #include <EEPROM.h> // 用於保存設定到 EEPROM
 #include "pwm.h" // 用於 UNO R4 PWM 頻率控制 (內建於核心)
+#include <math.h>
 
 // 定義 LCD 物件：使用 I2C 擴展
 hd44780_I2Cexp lcd;
