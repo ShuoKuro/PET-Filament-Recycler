@@ -301,8 +301,8 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
                 return;
             }
 
-            if (temperature < 220 || temperature > 260) {
-                showToast("溫度範圍應為 220-260°C");
+            if (temperature < 150 || temperature > 300) {
+                showToast("溫度範圍應為 150-300°C");
                 return;
             }
 
@@ -328,7 +328,8 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
             if (bluetoothManager != null) {
                 bluetoothManager.sendData("SET_TEMP:" + (int)temperature);
                 bluetoothManager.sendData("SET_SPEED:" + speed);
-                showToast("參數設置已發送");
+                bluetoothManager.sendData("SAVE");
+                showToast("參數設置已發送並保存");
             } else {
                 showToast("未連接到設備");
             }
