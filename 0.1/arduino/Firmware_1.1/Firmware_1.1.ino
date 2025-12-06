@@ -17,7 +17,6 @@ AccelStepper stepper1(1, 3, 4);
 
 // 硬體引腳定義（集中管理，便於修改）
 const int PWM_pin = 5; // PWM 輸出給加熱元件
-const int speed_pot = A1; // 電位器輸入，用於調整馬達速度
 const int but1 = 7; // 按鈕輸入，用於切換馬達
 const int EN = 2; // 步進驅動器啟用引腳
 const int LED = 13; // LED 指示燈
@@ -74,7 +73,6 @@ void setup() {
 
   // 設定輸入/輸出引腳
   pinMode(but1, INPUT_PULLUP); // 按鈕：輸入並啟用內部上拉
-  pinMode(speed_pot, INPUT); // 電位器：輸入
   pinMode(LED, OUTPUT);
   digitalWrite(LED, LOW); // 初始關閉 LED
   pinMode(PWM_pin, OUTPUT); // PWM：輸出
@@ -136,7 +134,7 @@ void handleBluetooth() {
       String valueStr = command.substring(10);
       int newSpeed = valueStr.toInt();
       if (newSpeed >= 0 && newSpeed <= 1000) {
-        max_speed = newSpeed; // 更新 max_speed (或直接 rotating_speed 如果不依賴電位器)
+        max_speed = newSpeed; // 更新 max_speed
         Serial1.println("OK: Speed set to " + String(newSpeed));
       } else {
         Serial1.println("ERROR: Invalid speed");
@@ -165,8 +163,8 @@ void updateStepper() {
   digitalWrite(LED, activate_stepper ? HIGH : LOW); // 根據狀態控制 LED
   digitalWrite(EN, activate_stepper ? LOW : HIGH); // 控制驅動器啟用（低電位啟用）
 
-  // 計算速度：如果啟用，從電位器映射；否則設為 0
-  rotating_speed = activate_stepper ? map(analogRead(speed_pot), 0, 1023, 0, max_speed) : 0;
+  // 計算速度：如果啟用，直接使用 max_speed（透過藍牙設定）；否則設為 0
+  rotating_speed = activate_stepper ? max_speed : 0;
 
   stepper1.setSpeed(rotating_speed); // 設定馬達速度
   stepper1.runSpeed(); // 產生脈衝（非阻塞，取代原 ISR）
