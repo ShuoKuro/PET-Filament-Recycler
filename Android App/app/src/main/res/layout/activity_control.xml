@@ -12,7 +12,7 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="240dp"
+            android:layout_height="220dp"
             android:orientation="vertical"
             android:background="#FFFFFF"
             android:elevation="4dp"
@@ -55,7 +55,7 @@
                 <Spinner
                     android:id="@+id/spinner_bluetooth_devices"
                     android:layout_width="wrap_content"
-                    android:layout_height="150dp"
+                    android:layout_height="130dp"
                     android:layout_gravity="top"
                     android:layout_marginBottom="8dp"
                     android:layout_weight="1" />
@@ -68,7 +68,7 @@
                     android:textStyle="bold"
                     android:gravity="center"/>
 
-            </LinearLayout>
+            </LinearLayout>/>
 
         </LinearLayout>
 
@@ -103,7 +103,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
+            android:orientation="vertical"
             android:background="#FFFFFF"
             android:elevation="4dp"
             android:padding="20dp"
@@ -114,6 +114,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
+                android:layout_gravity="center"
                 android:text="Machine Status:"
                 android:textSize="16sp"
                 android:textColor="#333333"
@@ -121,30 +122,62 @@
                 android:layout_marginBottom="20dp" />
 
             <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_weight="1">
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
-                <EditText
-                    android:id="@+id/edittext_temperature"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:hint="Temperature (°C)"
-                    android:inputType="numberDecimal"
-                    android:backgroundTint="#DDDDDD"
-                    android:padding="12dp"
-                    android:layout_marginBottom="16dp" />
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
 
-                <EditText
-                    android:id="@+id/edittext_speed"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:hint="Speed (mm/s)"
-                    android:inputType="numberDecimal"
-                    android:backgroundTint="#DDDDDD"
-                    android:padding="12dp" />
+                    <EditText
+                        android:id="@+id/edittext_temperature"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:hint="Temperature (°C)"
+                        android:inputType="numberDecimal"
+                        android:backgroundTint="#DDDDDD"
+                        android:padding="12dp"/>
+
+                    <EditText
+                        android:id="@+id/edittext_speed"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:hint="Speed (mm/s)"
+                        android:inputType="numberDecimal"
+                        android:backgroundTint="#DDDDDD"
+                        android:padding="12dp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_weight="1">
+
+                    <TextView
+                        android:id="@+id/textview_current_temperature"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:text="Current: "
+                        android:inputType="numberDecimal"
+                        android:padding="12dp"
+                        android:textSize="16dp"
+                        android:layout_weight="1"/>
+
+                    <TextView
+                        android:id="@+id/textview_current_speed"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:text="Current: "
+                        android:inputType="numberDecimal"
+                        android:padding="12dp"
+                        android:textSize="16dp"
+                        android:layout_weight="1"/>
+                </LinearLayout>
+
             </LinearLayout>
+
 
 
         </LinearLayout>
@@ -177,15 +210,32 @@
 
         </LinearLayout>
 
-        <Button
-            android:id="@+id/button_save"
-            android:layout_width="200dp"
-            android:layout_height="56dp"
-            android:text="Save Settings"
-            android:textSize="16sp"
-            android:backgroundTint="#8338EC"
-            android:textColor="#FFFFFF"
-            android:layout_gravity="center_horizontal" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center">
+            <Button
+                android:id="@+id/button_view_logs"
+                android:layout_width="100dp"
+                android:layout_height="60dp"
+                android:text="view logs"
+                android:textSize="16sp"
+                android:backgroundTint="#8338EC"
+                android:textColor="#FFFFFF"
+                android:layout_gravity="center_horizontal"
+                android:layout_margin="50dp"/>
+            <Button
+                android:id="@+id/button_save"
+                android:layout_width="140dp"
+                android:layout_height="60dp"
+                android:text="Save Settings"
+                android:textSize="16sp"
+                android:backgroundTint="#8338EC"
+                android:textColor="#FFFFFF"
+                android:layout_gravity="center_horizontal"
+                android:layout_margin="30dp"/>
+
+        </LinearLayout>
 
     </LinearLayout>
 </ScrollView>
