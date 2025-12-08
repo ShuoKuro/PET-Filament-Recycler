@@ -32,6 +32,10 @@
             android:exported="false"
             android:launchMode="standard"
             android:windowSoftInputMode="stateHidden|adjustResize" />
+        <activity
+            android:name=".LogActivity"
+            android:exported="false"
+            android:launchMode="standard" />
     </application>
 
 </manifest>

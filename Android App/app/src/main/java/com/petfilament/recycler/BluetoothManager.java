@@ -38,6 +38,8 @@ public class BluetoothManager {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private boolean isReceiverRegistered = false;
 
+    private DatabaseHelper databaseHelper;
+
     /**
      * 藍牙事件回調介面，上層程式需實作以接收事件通知。
      */
@@ -59,6 +61,7 @@ public class BluetoothManager {
      */
     public BluetoothManager(Context context, BluetoothCallback callback) {
         this.context = context;
+        databaseHelper = new DatabaseHelper(context);
         this.callback = callback;
         this.bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (bluetoothAdapter == null) {
@@ -216,6 +219,7 @@ public class BluetoothManager {
     public void sendData(String data) {
         if (connectedThread != null) {
             connectedThread.write((data + "\n").getBytes());
+            databaseHelper.insertLog("OUT", data);
             Log.d(TAG, "發送數據: " + data);
         } else {
             callback.onConnectionFailed("未連接任何設備，無法發送");
@@ -371,6 +375,7 @@ public class BluetoothManager {
                 try {
                     bytes = mmInStream.read(buffer);
                     String data = new String(buffer, 0, bytes);
+                    databaseHelper.insertLog("IN", data);
                     handler.post(() -> callback.onDataReceived(data));
                 } catch (IOException e) {
                     handler.post(() -> callback.onConnectionFailed("連接斷開: " + e.getMessage()));

@@ -16,6 +16,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import java.util.ArrayList;
+import android.content.Intent;
 
 public class ControlActivity extends AppCompatActivity implements BluetoothManager.BluetoothCallback {
 
@@ -26,6 +27,8 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
     private Button buttonStart, buttonStop, buttonSave;
     private EditText editTextTemperature, editTextSpeed;
     private ArrayAdapter<String> deviceAdapter;
+    private TextView textViewCurrentTemperature, textViewCurrentSpeed;
+    private Button buttonViewLogs;
 
     // 權限請求代碼
     private static final int REQUEST_BLUETOOTH_PERMISSIONS = 100;
@@ -210,6 +213,10 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
         editTextTemperature = findViewById(R.id.edittext_temperature);
         editTextSpeed = findViewById(R.id.edittext_speed);
 
+        textViewCurrentTemperature = findViewById(R.id.textview_current_temperature);
+        textViewCurrentSpeed = findViewById(R.id.textview_current_speed);
+        buttonViewLogs = findViewById(R.id.button_view_logs);
+
         // 初始禁用控制按鈕
         setControlButtonsEnabled(false);
     }
@@ -226,6 +233,11 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
                 // 沒有權限，請求權限
                 checkAndRequestPermissions();
             }
+        });
+
+        buttonViewLogs.setOnClickListener(v -> {
+            Intent intent = new Intent(ControlActivity.this, LogActivity.class);
+            startActivity(intent);
         });
 
         // 連接按鈕
@@ -390,6 +402,7 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
 
             // 啟用控制按鈕
             setControlButtonsEnabled(true);
+            buttonViewLogs.setEnabled(true);
 
             // 連接成功後請求當前狀態
             new android.os.Handler().postDelayed(() -> {
@@ -407,6 +420,7 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
 
             // 禁用控制按鈕
             setControlButtonsEnabled(false);
+            buttonViewLogs.setEnabled(false);
         });
     }
 
@@ -429,7 +443,7 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
                 String temp = data.replace("TEMP:", "").trim();
                 try {
                     currentTemperature = Float.parseFloat(temp);
-                    editTextTemperature.setText(String.valueOf((int)currentTemperature));
+                    textViewCurrentTemperature.setText("Current: " + (int)currentTemperature + "°C");
                 } catch (NumberFormatException e) {
                     e.printStackTrace();
                 }
@@ -438,7 +452,7 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
                 String speed = data.replace("SPEED:", "").trim();
                 try {
                     currentSpeed = Integer.parseInt(speed);
-                    editTextSpeed.setText(String.valueOf(currentSpeed));
+                    textViewCurrentSpeed.setText("Current: " + currentSpeed + " mm/s");
                 } catch (NumberFormatException e) {
                     e.printStackTrace();
                 }
@@ -461,11 +475,11 @@ public class ControlActivity extends AppCompatActivity implements BluetoothManag
                 if (part.startsWith("TEMP:")) {
                     String tempStr = part.replace("TEMP:", "").trim();
                     currentTemperature = Float.parseFloat(tempStr);
-                    editTextTemperature.setText(String.valueOf((int)currentTemperature));
+                    textViewCurrentTemperature.setText("Current: " + (int)currentTemperature + "°C");
                 } else if (part.startsWith("SPEED:")) {
                     String speedStr = part.replace("SPEED:", "").trim();
                     currentSpeed = Integer.parseInt(speedStr);
-                    editTextSpeed.setText(String.valueOf(currentSpeed));
+                    textViewCurrentSpeed.setText("Current: " + currentSpeed + " mm/s");
                 } else if (part.startsWith("STATUS:")) {
                     String status = part.replace("STATUS:", "").trim();
                     machineStatus = status.equals("ON") ? "RUNNING" : "IDLE";
