@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+    <!-- 權限聲明：這些是藍牙相關的權限 -->
+    <!-- BLUETOOTH 和 BLUETOOTH_ADMIN 用於舊版藍牙操作，maxSdkVersion=30 表示在Android 11 (API 30) 以下有效 -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <!-- ACCESS_FINE_LOCATION 和 ACCESS_COARSE_LOCATION 用於藍牙掃描的位置權限，maxSdkVersion=30 表示在Android 11以下有效 -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" android:maxSdkVersion="30" />
+    <!-- usesPermissionFlags="neverForLocation" 表示掃描時不使用位置資訊 -->
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <application

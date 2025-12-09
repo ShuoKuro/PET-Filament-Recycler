@@ -18,48 +18,138 @@ import androidx.core.content.ContextCompat;
 import java.util.ArrayList;
 import android.content.Intent;
 
+/**
+ * ControlActivity class handles Bluetooth control interface.
+ */
 public class ControlActivity extends AppCompatActivity implements BluetoothManager.BluetoothCallback {
 
+    /**
+     * Bluetooth manager instance.
+     */
     private BluetoothManager bluetoothManager;
+
+    /**
+     * Spinner for Bluetooth devices.
+     */
     private Spinner spinnerBluetoothDevices;
-    private TextView textViewConnectionStatus, textViewMachineStatus;
-    private Button buttonConnect, buttonDisconnect, buttonRefresh;
-    private Button buttonStart, buttonStop, buttonSave;
-    private EditText editTextTemperature, editTextSpeed;
+
+    /**
+     * TextView for connection status.
+     */
+    private TextView textViewConnectionStatus;
+
+    /**
+     * TextView for machine status.
+     */
+    private TextView textViewMachineStatus;
+
+    /**
+     * Button to connect.
+     */
+    private Button buttonConnect;
+
+    /**
+     * Button to disconnect.
+     */
+    private Button buttonDisconnect;
+
+    /**
+     * Button to refresh devices.
+     */
+    private Button buttonRefresh;
+
+    /**
+     * Button to start machine.
+     */
+    private Button buttonStart;
+
+    /**
+     * Button to stop machine.
+     */
+    private Button buttonStop;
+
+    /**
+     * Button to save settings.
+     */
+    private Button buttonSave;
+
+    /**
+     * EditText for temperature.
+     */
+    private EditText editTextTemperature;
+
+    /**
+     * EditText for speed.
+     */
+    private EditText editTextSpeed;
+
+    /**
+     * Adapter for device spinner.
+     */
     private ArrayAdapter<String> deviceAdapter;
-    private TextView textViewCurrentTemperature, textViewCurrentSpeed;
+
+    /**
+     * TextView for current temperature.
+     */
+    private TextView textViewCurrentTemperature;
+
+    /**
+     * TextView for current speed.
+     */
+    private TextView textViewCurrentSpeed;
+
+    /**
+     * Button to view logs.
+     */
     private Button buttonViewLogs;
 
-    // 權限請求代碼
+    /**
+     * Permission request code.
+     */
     private static final int REQUEST_BLUETOOTH_PERMISSIONS = 100;
 
-    // 機器狀態變數
+    /**
+     * Machine status variable.
+     */
     private String machineStatus = "IDLE";
+
+    /**
+     * Current temperature.
+     */
     private float currentTemperature = 0;
+
+    /**
+     * Current speed.
+     */
     private int currentSpeed = 0;
 
+    /**
+     * onCreate method initializes UI, Bluetooth, adapter, listeners, and permissions.
+     * @param savedInstanceState Saved instance state.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_control);
 
-        // 初始化所有 UI 元件
+        // Initialize all UI components
         initializeViews();
 
-        // 初始化藍牙管理器
+        // Initialize Bluetooth manager
         bluetoothManager = new BluetoothManager(this, this);
 
-        // 初始化設備列表適配器
+        // Initialize device list adapter
         deviceAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, new ArrayList<>());
         deviceAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerBluetoothDevices.setAdapter(deviceAdapter);
 
-        // 設置按鈕點擊監聽器
+        // Set button click listeners
         setupButtonListeners();
 
-        // 檢查並請求必要權限
+        // Check and request necessary permissions
         checkAndRequestPermissions();
     }
+
 
     private void checkAndRequestPermissions() {
         // 檢查當前已經擁有的權限
