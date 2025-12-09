@@ -10,18 +10,30 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 
-// LogsAdapter：RecyclerView適配器，用於綁定日誌數據到列表項目
+/**
+ * LogsAdapter class is a RecyclerView adapter for binding log data to list items.
+ */
 public class LogsAdapter extends RecyclerView.Adapter<LogsAdapter.ViewHolder> {
 
-    // 儲存日誌數據的列表，從DatabaseHelper獲取
+    /**
+     * List of log data from DatabaseHelper.
+     */
     private final ArrayList<DatabaseHelper.LogEntry> logs;
 
-    // 建構子：初始化日誌列表
+    /**
+     * Constructor to initialize log list.
+     * @param logs List of log entries.
+     */
     public LogsAdapter(ArrayList<DatabaseHelper.LogEntry> logs) {
         this.logs = logs;
     }
 
-    // onCreateViewHolder：創建新的ViewHolder，使用系統預設的simple_list_item_2布局（兩行文字）
+    /**
+     * Creates a new ViewHolder using simple_list_item_2 layout.
+     * @param parent Parent ViewGroup.
+     * @param viewType View type.
+     * @return New ViewHolder.
+     */
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -29,7 +41,11 @@ public class LogsAdapter extends RecyclerView.Adapter<LogsAdapter.ViewHolder> {
         return new ViewHolder(view);
     }
 
-    // onBindViewHolder：綁定數據到ViewHolder，將日誌的時間戳+方向顯示在第一行，訊息顯示在第二行
+    /**
+     * Binds data to ViewHolder, displaying timestamp + direction and message.
+     * @param holder ViewHolder.
+     * @param position Position.
+     */
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         DatabaseHelper.LogEntry log = logs.get(position);
@@ -37,18 +53,33 @@ public class LogsAdapter extends RecyclerView.Adapter<LogsAdapter.ViewHolder> {
         holder.textViewSecondary.setText(log.message);
     }
 
-    // getItemCount：返回日誌列表的大小
+    /**
+     * Returns the size of the log list.
+     * @return Item count.
+     */
     @Override
     public int getItemCount() {
         return logs.size();
     }
 
-    // ViewHolder：內部類別，持有列表項目的視圖元件
+    /**
+     * Inner ViewHolder class holding list item views.
+     */
     static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView textViewPrimary;  // 第一行文字（時間戳 + 方向）
-        TextView textViewSecondary;  // 第二行文字（訊息）
+        /**
+         * Primary TextView for timestamp + direction.
+         */
+        TextView textViewPrimary;
 
-        // 建構子：初始化TextView，從系統ID獲取
+        /**
+         * Secondary TextView for message.
+         */
+        TextView textViewSecondary;
+
+        /**
+         * Constructor to initialize TextViews.
+         * @param itemView Item view.
+         */
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
             textViewPrimary = itemView.findViewById(android.R.id.text1);
