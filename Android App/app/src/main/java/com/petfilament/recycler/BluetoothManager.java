@@ -22,42 +22,98 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * 藍牙管理類別，負責藍牙設備的掃描、連接、斷開以及數據收發。
- * 提供回調介面讓上層程式接收設備發現、連接狀態和數據事件。
+ * BluetoothManager class manages Bluetooth operations including scanning, connecting, disconnecting, and data transmission/reception.
+ * It provides a callback interface for upper-layer applications to receive events related to device discovery, connection status, and data.
  */
 public class BluetoothManager {
 
+    /**
+     * Constant for logging tag.
+     */
     private static final String TAG = "BluetoothManager";
+
+    /**
+     * Standard SPP UUID for RFCOMM connections.
+     */
     private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+
+    /**
+     * Context for permission checks and broadcast registrations.
+     */
     private final Context context;
+
+    /**
+     * Bluetooth adapter instance.
+     */
     private final BluetoothAdapter bluetoothAdapter;
+
+    /**
+     * Bluetooth socket for connections.
+     */
     private BluetoothSocket bluetoothSocket;
+
+    /**
+     * Thread for handling connected data transmission.
+     */
     private ConnectedThread connectedThread;
+
+    /**
+     * List of discovered devices.
+     */
     private final ArrayList<String> discoveredDevices = new ArrayList<>();
+
+    /**
+     * Callback for Bluetooth events.
+     */
     private final BluetoothCallback callback;
+
+    /**
+     * Handler for main thread operations.
+     */
     private final Handler handler = new Handler(Looper.getMainLooper());
+
+    /**
+     * Flag indicating if the broadcast receiver is registered.
+     */
     private boolean isReceiverRegistered = false;
 
+    /**
+     * Database helper for logging.
+     */
     private DatabaseHelper databaseHelper;
 
     /**
-     * 藍牙事件回調介面，上層程式需實作以接收事件通知。
+     * Interface for Bluetooth event callbacks.
      */
     public interface BluetoothCallback {
-        /** 當發現新設備或更新已配對設備列表時呼叫，傳遞設備名稱和 MAC 地址的列表 */
+        /**
+         * Called when new devices are found or paired device list is updated.
+         * @param devices List of device names and MAC addresses.
+         */
         void onDeviceFound(ArrayList<String> devices);
-        /** 當藍牙連接成功時呼叫 */
+
+        /**
+         * Called when Bluetooth connection is successful.
+         */
         void onConnected();
-        /** 當藍牙連接失敗或斷開時呼叫，傳遞錯誤訊息 */
+
+        /**
+         * Called when connection fails or disconnects.
+         * @param error Error message.
+         */
         void onConnectionFailed(String error);
-        /** 當接收到藍牙數據時呼叫，傳遞接收到的字串 */
+
+        /**
+         * Called when data is received.
+         * @param data Received string data.
+         */
         void onDataReceived(String data);
     }
 
     /**
-     * 建構子，初始化藍牙管理器。
-     * @param context 應用程式上下文（通常是 Activity），用於權限檢查和廣播註冊
-     * @param callback 回調介面，上層程式用於接收藍牙事件
+     * Constructor to initialize the Bluetooth manager.
+     * @param context Application context, usually an Activity.
+     * @param callback Interface for receiving Bluetooth events.
      */
     public BluetoothManager(Context context, BluetoothCallback callback) {
         this.context = context;
@@ -70,8 +126,8 @@ public class BluetoothManager {
     }
 
     /**
-     * 檢查藍牙是否啟用。
-     * @return true 如果藍牙已啟用，否則 false
+     * Checks if Bluetooth is enabled.
+     * @return true if enabled, false otherwise.
      */
     public boolean isBluetoothEnabled() {
         if (bluetoothAdapter == null) return false;
@@ -89,9 +145,9 @@ public class BluetoothManager {
     }
 
     /**
-     * 啟用藍牙（如果尚未啟用）。
-     * 需要 BLUETOOTH_CONNECT 權限（Android 12+）。
-     * @return true 如果成功啟用或已啟用，false 如果權限不足
+     * Enables Bluetooth if not already enabled.
+     * Requires BLUETOOTH_CONNECT permission on Android 12+.
+     * @return true if enabled or already enabled, false if permission insufficient.
      */
     public boolean enableBluetooth() {
         if (bluetoothAdapter == null) return false;
@@ -112,64 +168,48 @@ public class BluetoothManager {
     }
 
     /**
-     * 開始掃描藍牙設備，並顯示已配對設備。
-     * 需要 BLUETOOTH_SCAN 權限。
-     * 掃描結果透過 callback.onDeviceFound() 回傳。
+     * Starts Bluetooth device discovery and shows bonded devices.
      */
     public void startDiscovery() {
-        if (bluetoothAdapter == null) {
-            callback.onConnectionFailed("藍牙適配器不可用");
-            return;
-        }
+        if (bluetoothAdapter == null) return;
         if (!hasScanPermission()) {
-            callback.onConnectionFailed("無 BLUETOOTH_SCAN 權限，無法掃描");
+            callback.onConnectionFailed("無掃描權限");
             return;
         }
+        discoveredDevices.clear();
         try {
-            discoveredDevices.clear();
             if (bluetoothAdapter.isDiscovering()) {
                 bluetoothAdapter.cancelDiscovery();
             }
             bluetoothAdapter.startDiscovery();
             showBondedDevices();
-            Log.d(TAG, "開始掃描藍牙設備");
         } catch (SecurityException e) {
-            callback.onConnectionFailed("安全異常，無法掃描: " + e.getMessage());
-            Log.e(TAG, "掃描藍牙設備失敗", e);
+            callback.onConnectionFailed("安全異常，無法開始掃描: " + e.getMessage());
+            Log.e(TAG, "開始掃描失敗", e);
         }
     }
 
     /**
-     * 停止藍牙掃描。
-     * 需要 BLUETOOTH_SCAN 權限。
+     * Stops Bluetooth discovery.
      */
     public void stopDiscovery() {
-        if (!hasScanPermission() || bluetoothAdapter == null) {
-            callback.onConnectionFailed("無 BLUETOOTH_SCAN 權限或藍牙適配器不可用");
-            return;
-        }
+        if (bluetoothAdapter == null) return;
+        if (!hasScanPermission()) return;
         try {
-            if (bluetoothAdapter.isDiscovering()) {
-                bluetoothAdapter.cancelDiscovery();
-                Log.d(TAG, "停止藍牙掃描");
-            }
+            bluetoothAdapter.cancelDiscovery();
         } catch (SecurityException e) {
-            callback.onConnectionFailed("安全異常，無法停止掃描: " + e.getMessage());
             Log.e(TAG, "停止掃描失敗", e);
         }
     }
 
     /**
-     * 連接指定 MAC 地址的藍牙設備。
-     * @param macAddress 目標設備的 MAC 地址（格式如 "XX:XX:XX:XX:XX:XX"）
+     * Connects to a device with the given MAC address.
+     * @param macAddress MAC address of the device.
      */
     public void connect(String macAddress) {
-        if (!hasConnectPermission() || !hasScanPermission()) {
-            callback.onConnectionFailed("缺少藍牙權限，無法連接");
-            return;
-        }
-        if (bluetoothAdapter == null) {
-            callback.onConnectionFailed("藍牙適配器不可用");
+        if (bluetoothAdapter == null) return;
+        if (!hasConnectPermission()) {
+            callback.onConnectionFailed("無連接權限");
             return;
         }
         try {
@@ -180,55 +220,43 @@ public class BluetoothManager {
             connectedThread = new ConnectedThread(bluetoothSocket);
             connectedThread.start();
             callback.onConnected();
-            Log.d(TAG, "成功連接到 " + macAddress);
-        } catch (IOException e) {
+        } catch (IOException | SecurityException e) {
             callback.onConnectionFailed("連接失敗: " + e.getMessage());
             Log.e(TAG, "連接失敗", e);
-            try {
-                if (bluetoothSocket != null) bluetoothSocket.close();
-            } catch (IOException ignored) {}
-        } catch (SecurityException e) {
-            callback.onConnectionFailed("安全異常: " + e.getMessage());
-            Log.e(TAG, "安全異常", e);
         }
     }
 
     /**
-     * 斷開當前藍牙連接。
+     * Disconnects the Bluetooth connection.
      */
     public void disconnect() {
-        if (connectedThread != null) {
-            connectedThread.cancel();
-            connectedThread = null;
-        }
         try {
+            if (connectedThread != null) {
+                connectedThread.cancel();
+                connectedThread = null;
+            }
             if (bluetoothSocket != null) {
                 bluetoothSocket.close();
                 bluetoothSocket = null;
             }
         } catch (IOException e) {
-            Log.e(TAG, "關閉 Socket 失敗", e);
+            Log.e(TAG, "斷開連接失敗", e);
         }
-        callback.onConnectionFailed("已斷開連接");
     }
 
     /**
-     * 發送數據到已連接的藍牙設備。
-     * @param data 要發送的字串，自動附加換行符 \n
+     * Sends data to the connected device and logs it.
+     * @param data Data to send.
      */
     public void sendData(String data) {
         if (connectedThread != null) {
-            connectedThread.write((data + "\n").getBytes());
+            connectedThread.write(data.getBytes());
             databaseHelper.insertLog("OUT", data);
-            Log.d(TAG, "發送數據: " + data);
-        } else {
-            callback.onConnectionFailed("未連接任何設備，無法發送");
         }
     }
 
     /**
-     * 註冊藍牙廣播接收器，用於監聽設備發現事件。
-     * 應在 Activity 的 onStart() 或類似生命週期中呼叫。
+     * Registers the broadcast receiver for device discovery.
      */
     public void registerReceiver() {
         if (!isReceiverRegistered) {
@@ -237,29 +265,22 @@ public class BluetoothManager {
             filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
             context.registerReceiver(discoveryReceiver, filter);
             isReceiverRegistered = true;
-            Log.d(TAG, "已註冊藍牙廣播接收器");
         }
     }
 
     /**
-     * 取消註冊藍牙廣播接收器。
-     * 應在 Activity 的 onStop() 或 onDestroy() 中呼叫。
+     * Unregisters the broadcast receiver.
      */
     public void unregisterReceiver() {
         if (isReceiverRegistered) {
-            try {
-                context.unregisterReceiver(discoveryReceiver);
-                isReceiverRegistered = false;
-                Log.d(TAG, "已取消註冊藍牙廣播接收器");
-            } catch (IllegalArgumentException e) {
-                Log.e(TAG, "接收器未註冊", e);
-            }
+            context.unregisterReceiver(discoveryReceiver);
+            isReceiverRegistered = false;
         }
     }
 
     /**
-     * 檢查是否具有 BLUETOOTH_SCAN 權限。
-     * @return true 如果權限已授予，否則 false
+     * Checks if scan permission is granted, depending on Android version.
+     * @return true if permission granted.
      */
     private boolean hasScanPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -270,41 +291,29 @@ public class BluetoothManager {
     }
 
     /**
-     * 檢查是否具有 BLUETOOTH_CONNECT 權限。
-     * @return true 如果權限已授予，否則 false
+     * Checks if connect permission is granted.
+     * @return true if permission granted.
      */
     private boolean hasConnectPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             return ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED;
         }
-        return true; // 舊版 Android，BLUETOOTH 權限為 normal
+        return true;
     }
 
     /**
-     * 顯示已配對的藍牙設備，結果透過 callback.onDeviceFound() 回傳。
+     * Shows bonded (paired) devices.
      */
     private void showBondedDevices() {
         if (!hasConnectPermission()) {
             callback.onConnectionFailed("無 BLUETOOTH_CONNECT 權限，無法獲取已配對設備");
             return;
         }
-        if (bluetoothAdapter == null) {
-            callback.onConnectionFailed("藍牙適配器不可用");
-            return;
-        }
         try {
             Set<BluetoothDevice> bondedDevices = bluetoothAdapter.getBondedDevices();
             for (BluetoothDevice device : bondedDevices) {
-                String name = "Unknown";
-                String address = "Unknown";
-                if (hasConnectPermission()) {
-                    try {
-                        name = device.getName() != null ? device.getName() : "Unknown";
-                        address = device.getAddress();
-                    } catch (SecurityException e) {
-                        Log.e(TAG, "獲取設備資訊失敗", e);
-                    }
-                }
+                String name = device.getName() != null ? device.getName() : "Unknown";
+                String address = device.getAddress();
                 String item = name + " - " + address;
                 if (!discoveredDevices.contains(item)) {
                     discoveredDevices.add(item);
@@ -320,7 +329,9 @@ public class BluetoothManager {
         }
     }
 
-    // 藍牙設備發現的廣播接收器
+    /**
+     * Broadcast receiver for Bluetooth device discovery.
+     */
     private final BroadcastReceiver discoveryReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -349,11 +360,24 @@ public class BluetoothManager {
         }
     };
 
-    // 負責數據收發的內部線程
+    /**
+     * Inner thread class for handling data input/output after connection.
+     */
     private class ConnectedThread extends Thread {
+        /**
+         * Input stream for reading data.
+         */
         private final InputStream mmInStream;
+
+        /**
+         * Output stream for writing data.
+         */
         private final OutputStream mmOutStream;
 
+        /**
+         * Constructor to initialize streams.
+         * @param socket Bluetooth socket.
+         */
         public ConnectedThread(BluetoothSocket socket) {
             InputStream tmpIn = null;
             OutputStream tmpOut = null;
@@ -367,6 +391,9 @@ public class BluetoothManager {
             mmOutStream = tmpOut;
         }
 
+        /**
+         * Run method to continuously read data.
+         */
         @Override
         public void run() {
             byte[] buffer = new byte[1024];
@@ -384,6 +411,10 @@ public class BluetoothManager {
             }
         }
 
+        /**
+         * Writes bytes to the output stream.
+         * @param bytes Data to write.
+         */
         public void write(byte[] bytes) {
             try {
                 mmOutStream.write(bytes);
@@ -393,6 +424,9 @@ public class BluetoothManager {
             }
         }
 
+        /**
+         * Cancels the thread by closing streams.
+         */
         public void cancel() {
             try {
                 mmInStream.close();

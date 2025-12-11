@@ -5,32 +5,45 @@ import android.os.Bundle;
 import android.widget.Button;
 import androidx.appcompat.app.AppCompatActivity;
 
+/**
+ * MainActivity class is the entry point of the application.
+ */
 public class MainActivity extends AppCompatActivity {
 
+    /**
+     * Button to navigate to control activity.
+     */
     private Button buttonNavigate;
 
+    /**
+     * onCreate method initializes UI and sets navigation listener.
+     * @param savedInstanceState Saved instance state.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // 初始化 UI 元件 - 只有導航按鈕
+        // Initialize UI component - navigation button
         buttonNavigate = findViewById(R.id.button_navigate);
 
-        // 導航按鈕點擊監聽器
+        // Navigation button click listener
         buttonNavigate.setOnClickListener(v -> {
-            // 導航到 ControlActivity
+            // Navigate to ControlActivity
             Intent intent = new Intent(MainActivity.this, ControlActivity.class);
             startActivity(intent);
 
-            // 可選：添加過渡動畫
+            // Optional: add transition animation
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
         });
     }
 
+    /**
+     * onResume method for any cleanup or initialization on resume.
+     */
     @Override
     protected void onResume() {
         super.onResume();
-        // 當返回 MainActivity 時，可以執行一些清理或初始化
+        // When returning to MainActivity, can perform cleanup or init
     }
 }
